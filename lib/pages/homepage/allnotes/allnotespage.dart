@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:notlar/components/fish_shape_clipper.dart';
 import 'package:notlar/components/themenotifier.dart';
 import 'package:notlar/models/note.dart';
 import 'package:http/http.dart' as http;
@@ -23,86 +25,176 @@ class AllNotesPage extends StatefulWidget {
   _AllNotesPageState createState() => _AllNotesPageState();
 }
 
-class _AllNotesPageState extends State<AllNotesPage> {
+class _AllNotesPageState extends State<AllNotesPage> with SingleTickerProviderStateMixin {
+  final Random _random = Random();
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )
+      ..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
 
-    return Center(
-      child: widget.notes.isEmpty
-          ? Text("Henüz hiç not kaydedilmemiş.")
-          : ListView.builder(
-        itemCount: widget.notes.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(widget.notes[index].noteTitle),
-            onTap: () {
-              editNote(context, index);
-            },
-            onLongPress: () {
-              showModalBottomSheet(
-                context: context,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(20.0),
-                  ),
-                ),
-                backgroundColor: Colors.transparent,
-                builder: (context) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: themeNotifier.isDarkMode
-                          ? Colors.grey[800]
-                          : Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20.0),
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Akvaryum arka planı
+          Positioned.fill(
+            child: Image.asset(
+              'lib/images/aquarium_background.jpg', // Akvaryum arka planı resmi
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Not kartları
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return Stack(
+                children: widget.notes.map((note) {
+                  final double offsetX = _random.nextDouble() * MediaQuery
+                      .of(context)
+                      .size
+                      .width;
+                  final double offsetY = _random.nextDouble() * MediaQuery
+                      .of(context)
+                      .size
+                      .height;
+                  return AnimatedPositioned(
+                    left: offsetX,
+                    top: offsetY,
+                    duration: const Duration(seconds: 5),
+                    child: GestureDetector(
+                      onTap: () {
+                        editNote(context, widget.notes.indexOf(note));
+                      },
+                      onLongPress: () {
+                        showModalBottomSheet(
+                          context: context,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20.0),
+                            ),
+                          ),
+                          backgroundColor: Colors.transparent,
+                          builder: (context) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: themeNotifier.isDarkMode
+                                    ? Colors.grey[800]
+                                    : Colors.white,
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20.0),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: Icon(Icons.edit),
+                                    title: Text('İçeriği Düzenle'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      editNote(
+                                          context, widget.notes.indexOf(note));
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.delete),
+                                    title: Text('Sil'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      deleteNoteConfirmation(
+                                          context, widget.notes.indexOf(note));
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.archive),
+                                    title: Text('Arşivle'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      archiveNoteConfirmation(
+                                          context, widget.notes.indexOf(note));
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.edit),
+                                    title: Text('Başlığı Yeniden Adlandır'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      renameNote(
+                                          context, widget.notes.indexOf(note));
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      child: ClipPath(
+                        clipper: FishShapeClipper(),
+                        // Balık şeklinde klipleyici
+                        child: Container(
+                          padding: EdgeInsets.all(10),
+                          margin: EdgeInsets.symmetric(
+                              vertical: 5, horizontal: 10),
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage('lib/images/fish.jpg'), // Balık arka plan resmi
+                              fit: BoxFit.cover,
+                            ),
+                            color: themeNotifier.isDarkMode
+                                ? Colors.grey[700]
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.3),
+                                spreadRadius: 2,
+                                blurRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              note.noteTitle,
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: themeNotifier.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          leading: Icon(Icons.edit),
-                          title: Text('İçeriği Düzenle'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            editNote(context, index);
-                          },
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.delete),
-                          title: Text('Sil'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            deleteNoteConfirmation(context, index);
-                          },
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.archive),
-                          title: Text('Arşivle'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            archiveNoteConfirmation(context, index);
-                          },
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.edit),
-                          title: Text('Başlığı Yeniden Adlandır'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            renameNote(context, index);
-                          },
-                        ),
-                      ],
-                    ),
                   );
-                },
+                }).toList(),
               );
             },
-          );
-        },
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void editNote(BuildContext context, int index) {

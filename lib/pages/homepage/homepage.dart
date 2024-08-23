@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:notlar/components/themenotifier.dart';
 import 'package:notlar/models/User.dart';
 import 'package:notlar/pages/homepage/addnote/addnotehomepage.dart';
-import 'package:notlar/pages/homepage/allnotespage.dart';
+import 'package:notlar/pages/homepage/allnotes/allnotespage.dart';
 import 'package:notlar/pages/homepage/treelines/archivepage.dart';
 import 'package:notlar/pages/homepage/treelines/settingspage.dart';
 import 'package:notlar/pages/homepage/treelines/trashpage.dart';
